@@ -3,7 +3,7 @@
 
     <string name="hello">Hello World, SensorPlotterActivity!</string>
     <string name="app_name">SensorPlotter</string>
-<string name="sensor_prompt">Choose a planet</string>
+<string name="sensor_prompt">Choose a sensor</string>
     <string-array name="sensor_array">
         <item>TYPE_ACCELEROMETER</item>
         <item>TYPE_GRAVITY</item>
@@ -13,7 +13,7 @@
         <item>TYPE_ORIENTATION</item>
         <item>TYPE_ROTATION_VECTOR</item>
     </string-array>
-    <string name="rate_prompt">Choose a planet</string>
+    <string name="rate_prompt">Choose a rate</string>
     <string-array name="rate_array">
         <item>SENSOR_DELAY_FASTEST</item>
         <item>SENSOR_DELAY_GAME</item>
