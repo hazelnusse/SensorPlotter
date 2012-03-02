@@ -36,13 +36,13 @@ public class SensorPlotterActivity extends Activity {
 
 	private void configureSpinners() {
 		ArrayAdapter sensorAdapter = ArrayAdapter.createFromResource(
-	            this, R.array.sensor, android.R.layout.simple_spinner_item);
+	            this, R.array.sensor_array, android.R.layout.simple_spinner_item);
 	    sensorAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 	    sensor.setAdapter(sensorAdapter);
 	    
 	    ArrayAdapter sampleRateAdapter = ArrayAdapter.createFromResource(
-	            this, R.array.sensor, android.R.layout.simple_spinner_item);
+	            this, R.array.rate_array, android.R.layout.simple_spinner_item);
 	    sampleRateAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-	    sampleRate.setAdapter(sensorAdapter);
+	    sampleRate.setAdapter(sampleRateAdapter);
 	}
 }

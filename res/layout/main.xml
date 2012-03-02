@@ -20,13 +20,15 @@
                 android:id="@+id/sensor"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1" />
+                android:layout_weight="1" 
+                android:prompt="@string/sensor_prompt"/>
 
             <Spinner
                 android:id="@+id/sampleRate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1" />
+                android:layout_weight="1" 
+                android:prompt="@string/rate_prompt"/>
 
             <Button
                 android:id="@+id/Start"
