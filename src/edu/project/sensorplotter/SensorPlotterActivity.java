@@ -189,6 +189,12 @@ public class SensorPlotterActivity extends Activity implements SensorEventListen
 			xHistory.clear();
 			yHistory.clear();
 			zHistory.clear();
+			// update the plot with the updated history Lists:
+	        zHistorySeries.setModel(zHistory, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY);
+	        yHistorySeries.setModel(yHistory, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY);
+	        xHistorySeries.setModel(xHistory, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY);
+	        // redraw the Plots:
+	        sensorDataPlot.redraw();
 		} else if (arg0.getId() == R.id.Stop) {
 			sensorMgr.unregisterListener(this);
 		}
