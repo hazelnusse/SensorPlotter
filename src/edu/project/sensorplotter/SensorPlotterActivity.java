@@ -1,30 +1,58 @@
 package edu.project.sensorplotter;
 
-import com.androidplot.xy.XYPlot;
+import java.util.Arrays;
+import java.util.LinkedList;
+
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
-import android.hardware.SensorListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.widget.AdapterView.OnItemSelectedListener;
+import android.view.View;
 import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
-import android.view.View;
+
+import com.androidplot.xy.BoundaryMode;
+import com.androidplot.xy.LineAndPointFormatter;
+import com.androidplot.xy.LineAndPointRenderer;
+import com.androidplot.xy.SimpleXYSeries;
+import com.androidplot.xy.XYPlot;
 
 
 public class SensorPlotterActivity extends Activity implements SensorEventListener, View.OnClickListener {
 
 	private Spinner sensorSpinner, sampleRateSpinner;
 	private Button StartButton, ClearButton, StopButton;
-	//private XYPlot sensorDataPlot;
+
 	private SensorManager sensorMgr = null;
 	private int sensorDelay;
 	private Sensor sensorType;
+	
+//	// plotter variables
+	private static int HISTORY_SIZE = 120;            // number of points to plot in history
+	private XYPlot sensorDataPlot = null;
+    private SimpleXYSeries xHistorySeries = null;
+    private SimpleXYSeries yHistorySeries = null;
+    private SimpleXYSeries zHistorySeries = null;
+    private LinkedList<Number> xHistory;
+    private LinkedList<Number> yHistory;
+    private LinkedList<Number> zHistory;
+ 
+    {
+        xHistory = new LinkedList<Number>();
+        yHistory = new LinkedList<Number>();
+        zHistory = new LinkedList<Number>();
+ 
+        xHistorySeries = new SimpleXYSeries("X");
+        yHistorySeries = new SimpleXYSeries("Y");
+        zHistorySeries = new SimpleXYSeries("Z");
+    }
 	
 	public class MyOnItemSelectedListener implements OnItemSelectedListener {
 
@@ -114,13 +142,26 @@ public class SensorPlotterActivity extends Activity implements SensorEventListen
     	StopButton.setOnClickListener(this);
     	
     	// XY Plot
-    	//sensorDataPlot = (XYPlot) findViewById(R.id.sensorDataPlot);
+    	sensorDataPlot = (XYPlot) findViewById(R.id.sensorDataPlot);
     	configureDataPlot();
     }
 
 	private void configureDataPlot() {
-		// TODO Auto-generated method stub
-		
+//		// TODO Auto-generated method stub
+//        // setup the  History plot:
+		//sensorDataPlot.setRangeBoundaries(-180, 359, BoundaryMode.FIXED);
+		sensorDataPlot.setDomainBoundaries(0, HISTORY_SIZE, BoundaryMode.FIXED);
+		sensorDataPlot.addSeries(xHistorySeries, LineAndPointRenderer.class, new LineAndPointFormatter(Color.rgb(100, 100, 200), Color.BLACK, null));
+		sensorDataPlot.addSeries(yHistorySeries, LineAndPointRenderer.class, new LineAndPointFormatter(Color.rgb(100, 200, 100), Color.BLACK, null));
+		sensorDataPlot.addSeries(zHistorySeries, LineAndPointRenderer.class, new LineAndPointFormatter(Color.rgb(200, 100, 100), Color.BLACK, null));
+		sensorDataPlot.setDomainStepValue(5);
+		sensorDataPlot.setTicksPerRangeLabel(3);
+		sensorDataPlot.setDomainLabel("Sample Index");
+		sensorDataPlot.getDomainLabelWidget().pack();
+		sensorDataPlot.setRangeLabel("Sensor Output");
+		sensorDataPlot.getRangeLabelWidget().pack();
+		sensorDataPlot.disableAllMarkup();
+
 	}
 
 
@@ -145,7 +186,9 @@ public class SensorPlotterActivity extends Activity implements SensorEventListen
 		if (arg0.getId() == R.id.Start) {
 			sensorMgr.registerListener(this, sensorType, sensorDelay);
 		} else if (arg0.getId() == R.id.Clear) {
-			// clear button stuff
+			xHistory.clear();
+			yHistory.clear();
+			zHistory.clear();
 		} else if (arg0.getId() == R.id.Stop) {
 			sensorMgr.unregisterListener(this);
 		}
@@ -161,7 +204,28 @@ public class SensorPlotterActivity extends Activity implements SensorEventListen
 	@Override
 	public void onSensorChanged(SensorEvent arg0) {
 		// TODO Auto-generated method stub
-		
+        // update instantaneous data:
+        Number[] series1Numbers = {arg0.values[0], arg0.values[1], arg0.values[2]};
+ 
+        // get rid the oldest sample in history:
+        if (xHistory.size() > HISTORY_SIZE) {
+            xHistory.removeFirst();
+            yHistory.removeFirst();
+            zHistory.removeFirst();
+        }
+ 
+        // add the latest history sample:
+        xHistory.addLast(arg0.values[0]);
+        yHistory.addLast(arg0.values[1]);
+        zHistory.addLast(arg0.values[2]);
+ 
+        // update the plot with the updated history Lists:
+        zHistorySeries.setModel(zHistory, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY);
+        yHistorySeries.setModel(yHistory, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY);
+        xHistorySeries.setModel(xHistory, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY);
+ 
+        // redraw the Plots:
+        sensorDataPlot.redraw();
 	}
 	
     @Override
