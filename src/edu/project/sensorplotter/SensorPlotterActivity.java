@@ -1,6 +1,24 @@
+// SensorPlotter
+// Copyright (c) 2012, Dale Lukas Peterson <hazelnusse@gmail.com>, Julia Sohnen <jmsohnen@ucdavis.edu>
+//
+// Permission to use, copy, modify, and/or distribute this software for any
+// purpose with or without fee is hereby granted, provided that the above
+// copyright notice and this permission notice appear in all copies.
+//
+// THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+// REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+// FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+// INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+// LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+// OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+// PERFORMANCE OF THIS SOFTWARE.
+
 package edu.project.sensorplotter;
 
-import java.util.Arrays;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.LinkedList;
 
 import android.app.Activity;
@@ -11,6 +29,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
@@ -24,17 +43,23 @@ import com.androidplot.xy.LineAndPointRenderer;
 import com.androidplot.xy.SimpleXYSeries;
 import com.androidplot.xy.XYPlot;
 
-
 public class SensorPlotterActivity extends Activity implements SensorEventListener, View.OnClickListener {
 
+	// GUI Widgets
 	private Spinner sensorSpinner, sampleRateSpinner;
 	private Button StartButton, ClearButton, StopButton;
 
+	// Sensor variables
 	private SensorManager sensorMgr = null;
 	private int sensorDelay;
 	private Sensor sensorType;
 	
-//	// plotter variables
+	// Data writing variables
+	private File dataFile = null;
+	private FileWriter csvWriter = null;
+	private BufferedWriter out = null;
+	
+	//  Plotter variables
 	private static int HISTORY_SIZE = 120;            // number of points to plot in history
 	private XYPlot sensorDataPlot = null;
     private SimpleXYSeries xHistorySeries = null;
@@ -72,6 +97,9 @@ public class SensorPlotterActivity extends Activity implements SensorEventListen
 	    }
 	}
 	
+	// setSensor() is called when sensor is selected from spinner;
+	// sets private member variable so SensorListener is registered
+	// with the proper sensor.
 	private void setSensor(long id) {
 		switch ((int) id) {
 		case 0:
@@ -97,7 +125,10 @@ public class SensorPlotterActivity extends Activity implements SensorEventListen
 			break;
 		}
 	}
-		
+	
+	// setSampleRate() is called when sample rate is selected from spinner;
+	// sets private member variable so SensorListener is registered
+	// with the proper delay.
 	private void setSampleRate(long id) {
 		switch ((int) id) {
 		case 0:
@@ -121,9 +152,18 @@ public class SensorPlotterActivity extends Activity implements SensorEventListen
         setContentView(R.layout.main);
         sensorMgr = (SensorManager) getApplicationContext().getSystemService(Context.SENSOR_SERVICE);
         initControls();
-        
+        try {
+            dataFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "sensor_data.csv");
+			csvWriter = new FileWriter(dataFile);
+			out = new BufferedWriter(csvWriter);
+			out.write("time,x,y,z,sensor_type,sensor_delay\n");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
     
+    // Initialize GUI elements and plotting elements.
     private void initControls() {
     	sensorType = sensorMgr.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
     	sensorDelay = SensorManager.SENSOR_DELAY_FASTEST;
@@ -145,11 +185,10 @@ public class SensorPlotterActivity extends Activity implements SensorEventListen
     	sensorDataPlot = (XYPlot) findViewById(R.id.sensorDataPlot);
     	configureDataPlot();
     }
-
+    
+    // Configure the plot
 	private void configureDataPlot() {
-//		// TODO Auto-generated method stub
-//        // setup the  History plot:
-		//sensorDataPlot.setRangeBoundaries(-180, 359, BoundaryMode.FIXED);
+		// setup the  History plot: adapted from androidplot.com example
 		sensorDataPlot.setDomainBoundaries(0, HISTORY_SIZE, BoundaryMode.FIXED);
 		sensorDataPlot.addSeries(xHistorySeries, LineAndPointRenderer.class, new LineAndPointFormatter(Color.rgb(100, 100, 200), Color.BLACK, null));
 		sensorDataPlot.addSeries(yHistorySeries, LineAndPointRenderer.class, new LineAndPointFormatter(Color.rgb(100, 200, 100), Color.BLACK, null));
@@ -161,13 +200,11 @@ public class SensorPlotterActivity extends Activity implements SensorEventListen
 		sensorDataPlot.setRangeLabel("Sensor Output");
 		sensorDataPlot.getRangeLabelWidget().pack();
 		sensorDataPlot.disableAllMarkup();
-
 	}
 
-
+	// configureSpinners() connects the sensor_array string-array in strings.xml 
+	// to each spinner so that they have the appropriate choices.
 	private void configureSpinners() {
-		// This code connects the sensor_array string-array in strings.xml 
-		// to each spinner so that they have the appropriate choices.
 		ArrayAdapter<CharSequence> sensorAdapter = ArrayAdapter.createFromResource(
 	            this, R.array.sensor_array, android.R.layout.simple_spinner_item);
 	    sensorAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -181,6 +218,7 @@ public class SensorPlotterActivity extends Activity implements SensorEventListen
 	    sampleRateSpinner.setOnItemSelectedListener(new MyOnItemSelectedListener());
 	}
 
+	// onClick is called when user clicks spinners or buttons
 	@Override
 	public void onClick(View arg0) {
 		if (arg0.getId() == R.id.Start) {
@@ -189,11 +227,11 @@ public class SensorPlotterActivity extends Activity implements SensorEventListen
 			xHistory.clear();
 			yHistory.clear();
 			zHistory.clear();
-			// update the plot with the updated history Lists:
+			// update the plot with the cleared history Lists:
 	        zHistorySeries.setModel(zHistory, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY);
 	        yHistorySeries.setModel(yHistory, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY);
 	        xHistorySeries.setModel(xHistory, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY);
-	        // redraw the Plots:
+	        // redraw the Plots (clears it)
 	        sensorDataPlot.redraw();
 		} else if (arg0.getId() == R.id.Stop) {
 			sensorMgr.unregisterListener(this);
@@ -202,17 +240,11 @@ public class SensorPlotterActivity extends Activity implements SensorEventListen
 	}
 
 	@Override
-	public void onAccuracyChanged(Sensor arg0, int arg1) {
-		// TODO Auto-generated method stub
-		
-	}
+	public void onAccuracyChanged(Sensor arg0, int arg1) {}
 
 	@Override
 	public void onSensorChanged(SensorEvent arg0) {
-		// TODO Auto-generated method stub
-        // update instantaneous data:
-        Number[] series1Numbers = {arg0.values[0], arg0.values[1], arg0.values[2]};
- 
+		// Parts of this function are adapted from examples on androidplot.com
         // get rid the oldest sample in history:
         if (xHistory.size() > HISTORY_SIZE) {
             xHistory.removeFirst();
@@ -224,19 +256,35 @@ public class SensorPlotterActivity extends Activity implements SensorEventListen
         xHistory.addLast(arg0.values[0]);
         yHistory.addLast(arg0.values[1]);
         zHistory.addLast(arg0.values[2]);
+        try {
+        	// Write to csv file the time, sensor values, type, and delay
+			out.write(System.nanoTime() + "," +
+					  arg0.values[0] + "," +
+					  arg0.values[1] + "," +
+					  arg0.values[2] + "," +
+					  sensorType.getType() + "," +
+					  sensorDelay + "\n");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
  
         // update the plot with the updated history Lists:
         zHistorySeries.setModel(zHistory, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY);
         yHistorySeries.setModel(yHistory, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY);
         xHistorySeries.setModel(xHistory, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY);
- 
         // redraw the Plots:
         sensorDataPlot.redraw();
 	}
 	
     @Override
     protected void onStop() {
+    	// Unregister listener
     	sensorMgr.unregisterListener(this);
+    	try {
+			out.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
         super.onStop();
     }
 
@@ -244,5 +292,4 @@ public class SensorPlotterActivity extends Activity implements SensorEventListen
         super.onPause();
         sensorMgr.unregisterListener(this);
     }
-
 }
