@@ -281,7 +281,9 @@ public class SensorPlotterActivity extends Activity implements SensorEventListen
     	// Unregister listener
     	sensorMgr.unregisterListener(this);
     	try {
-			out.close();
+    		if (out != null) {
+			    out.close();
+    		}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
